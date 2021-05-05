@@ -8,12 +8,13 @@
 import UIKit
 import WebKit
 
-class ViewController: UIViewController, WKNavigationDelegate {
+class WebViewVC: UIViewController, WKNavigationDelegate {
     
     var webView: WKWebView!
     // we are creating a class scope variable for progressView because we use it in the 'observe Value' function.
     var progressView: UIProgressView!
-    var websites = ["apple.com", "hackingwithswift.com", "reddit.com", "google.com"]
+    var passedSite: String!
+    var websites = [String]()
     
     // This method loads or creates a view and assigns it to the view property. Since we are overreding the view of our viewController with the webView, we have to user loadView
     override func loadView() {
@@ -24,12 +25,15 @@ class ViewController: UIViewController, WKNavigationDelegate {
     }
     override func viewDidLoad() {
         super.viewDidLoad()
+        websites += ["hackingwithswift.com", "apple.com"]
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Open", style: .plain, target: self, action: #selector(openTapped))
         
         // the spacer inserts space between the refresh button and the progressview
         let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
         let refresh = UIBarButtonItem(barButtonSystemItem: .refresh, target: webView, action: #selector(webView.reload))
+        let forward = UIBarButtonItem(title: "Forward", style: .plain, target: webView, action: #selector(webView.goForward))
+        let backward = UIBarButtonItem(title: "Backward", style: .plain, target: webView, action: #selector(webView.goBack))
         // creating progress view
         progressView = UIProgressView(progressViewStyle: .default)
         progressView.sizeToFit()
@@ -37,12 +41,12 @@ class ViewController: UIViewController, WKNavigationDelegate {
         let progressButton = UIBarButtonItem(customView: progressView)
         // if we didn't have this, none of the UIBarButtonItems we created would be displayed
         // the ordering plays a role: in this case, progressButton will be shown first, then follows the spacer and then the refresh button
-        toolbarItems = [progressButton, spacer, refresh]
+        toolbarItems = [progressButton, spacer, refresh, backward, forward]
         // even if we have created the toolbarItems, we have to unhide the toolBar manually, because the default behavior defines it to be hidden
         navigationController?.isToolbarHidden = false
         // we created a variable called 'websites' above, which contains the websites that we offer our users to visit
         // here, we are taking the first element in the array and put the url into a constant
-        let url = URL(string: "https://" + websites[0])!
+        let url = URL(string: "https://" + passedSite)!
         // we load the webView with the url we just created
         webView.load(URLRequest(url: url))
         // allows swiping gestures with the webView
@@ -58,6 +62,7 @@ class ViewController: UIViewController, WKNavigationDelegate {
         for website in websites {
             ac.addAction(UIAlertAction(title: website, style: .default, handler: openPage))
         }
+        
         ac.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         // important for iPad
         ac.popoverPresentationController?.barButtonItem = navigationItem.rightBarButtonItem
@@ -99,8 +104,19 @@ class ViewController: UIViewController, WKNavigationDelegate {
                 }
             }
         }
+        
+        guard let urlString = url?.absoluteString else { return }
+        
+        if urlString != "about:blank" {
+            let ac = UIAlertController(title: "Access Denied", message: "The website \(urlString) is not accessible through this app", preferredStyle: .alert)
+            ac.addAction(UIAlertAction(title: "Continue", style: .cancel))
+            present(ac, animated: true)
+           
+        }
+        
         // deny loading
         decisionHandler(.cancel)
+        
     }
     
 }
